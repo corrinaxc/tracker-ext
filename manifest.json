@@ -9,6 +9,12 @@
     "action": {
         "default_popup": "index.html",
         "default_title": ""
-    }
+    },
+    "content_scripts": [
+        {
+          "matches": ["<all_urls>"],
+          "js": ["content.js"]
+        }
+      ]
   }
   
