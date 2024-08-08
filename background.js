@@ -1,9 +1,21 @@
 // import useLocalStorage from "use-local-storage";
 
-chrome.webNavigation.onCompleted.addListener(function(details) {
-    if (details.frameId === 0) { // Only track the main frame
-        console.log('URL:', details.url);
-    }
+let listenerRegistered = false;
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'start' && !listenerRegistered) {
+    chrome.webNavigation.onCompleted.addListener(logUrl);
+    listenerRegistered = true;
+  } else if (message.action === 'stop' && listenerRegistered) {
+    chrome.webNavigation.onCompleted.removeListener(logUrl);
+    listenerRegistered = false;
+  }
 });
+
+function logUrl(details) {
+  if (details.frameId === 0) {
+    console.log('URL:', details.url);
+  }
+}
 
   
