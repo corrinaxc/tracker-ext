@@ -1,5 +1,3 @@
-// import useLocalStorage from "use-local-storage";
-
 let lastLoggedUrl = '';
 
 function logUrl(details) {

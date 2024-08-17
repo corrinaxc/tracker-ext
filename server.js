@@ -1,13 +1,11 @@
-require('dotenv').config();
-
 const express = require('express');
 const mysql = require('mysql');
 const bodyParser = require('body-parser');
-const cors = require('cors');
 
 const app = express();
+const port = 3000;
+
 app.use(bodyParser.json());
-app.use(cors());
 
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -16,31 +14,27 @@ const db = mysql.createConnection({
   database: process.env.DB_NAME
 });
 
-db.connect(err => {
-  if (err) {
-    console.error('Database connection failed: ' + err.stack);
-    return;
-  }
-  console.log('Connected to database.');
-});
+app.post('/log', (req, res) => {
+    const { url, timestamp } = req.body;
 
-app.post('/track', (req, res) => {
-  const url = req.body.url;
-  if (!url) {
-    return res.status(400).send('URL is required');
-  }
-
-  const query = 'INSERT INTO urls (url) VALUES (?)';
-  db.query(query, [url], (err, results) => {
-    if (err) {
-      console.error('Failed to insert URL: ' + err.stack);
-      return res.status(500).send('Failed to save URL');
+    if (!url || !timestamp) {
+        return res.status(400).send('Invalid data');
     }
-    res.status(200).send('URL saved');
-  });
+
+    // Insert into the url_test table
+    const query = 'INSERT INTO url_test (url, timestamp) VALUES (?, ?)';
+    db.query(query, [url, timestamp], (err, result) => {
+        if (err) {
+            console.error('Error inserting into MySQL:', err);
+            return res.status(500).send('Database error');
+        }
+        res.status(200).send('Logged successfully');
+    });
 });
 
-const PORT = process.env.PORT || 3306;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+});
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
