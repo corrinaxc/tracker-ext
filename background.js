@@ -1,11 +1,15 @@
+import { useSession } from "next-auth/react";
+
 let lastLoggedUrl = '';
+const { data: session, status } = useSession();
 
 function logUrl(details) {
-    if (details.frameId === 0) { 
+    if (status === 'authenticated' && details.frameId === 0) { 
         const url = details.url;
         if (url !== lastLoggedUrl) { 
             const timestamp = new Date().toISOString();
-            console.log(`[${timestamp}] URL:`, url);
+            const sessionId = session?.id;
+            console.log(`Session ID: [${sessionId}][${timestamp}] URL:`, url, );
             lastLoggedUrl = url;
 
             fetch('http://localhost:3001/log', {
