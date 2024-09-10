@@ -1,23 +1,34 @@
 {
-    "manifest_version": 3,
-    "name": "tracker-ext",
-    "version": "1.0",
-    "icons": {
-        "16": "icon16.png"
-    },
-    "permissions": ["webNavigation", "tabs", "storage"],
-    "background": {
-      "service_worker": "background.js"
-    },
-    "action": {
-        "default_popup": "index.html",
-        "default_title": ""
-    },
-    "content_scripts": [
-        {
-          "matches": ["<all_urls>"],
-          "js": ["content.js"]
-        }
-      ]
-  }
+  "manifest_version": 3,
+  "name": "tracker-ext",
+  "version": "1.0",
+  "icons": {
+    "16": "icon16.png"
+  },
+  "permissions": [
+    "webNavigation",
+    "tabs",
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": ""
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
+
   
