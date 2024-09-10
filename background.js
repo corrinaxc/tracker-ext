@@ -2,6 +2,10 @@ let lastLoggedUrl = '';
 let sessionId = '';
 let inactivityTimeout;
 
+// Stores the exit URL and timestamp when navigating away
+let exitUrl = '';
+let exitTimestamp = '';
+
 function generateRandomNumberString(length) {
     let randomNumberString = '';
     const digits = '0123456789';
@@ -17,7 +21,7 @@ function assignSessionId() {
     return sessionId;
 }
 
-// Assign a new session ID after 15 minutes of inactivity
+// Assigns a new session ID after 15 minutes of inactivity
 function resetInactivityTimeout() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(() => {
@@ -31,8 +35,18 @@ function logUrl(details) {
     // Only process the main frame (not iframes) and filter out unwanted URLs
     if (details.frameId === 0 && url !== lastLoggedUrl && !isIgnoredUrl(url)) {
         const timestamp = new Date().toISOString();
-        console.log(`Session ID: [${sessionId}][${timestamp}] URL:`, url);
-        lastLoggedUrl = url;
+
+        // Log exit data before navigating to the new URL
+        if (lastLoggedUrl) {
+            exitTimestamp = timestamp;
+            exitUrl = lastLoggedUrl;
+            console.log(`Session ID: [${sessionId}] Exit URL: [${exitUrl}] Exit Timestamp: [${exitTimestamp}]`);
+        }
+
+        // Log the new entry URL and timestamp
+        console.log(`Session ID: [${sessionId}] Entry URL: [${url}] Entry Timestamp: [${timestamp}]`);
+
+        lastLoggedUrl = url;  // Update the last logged URL
 
         // Inject content script only for the main page
         chrome.scripting.executeScript({
@@ -46,8 +60,10 @@ function logUrl(details) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                url: url,
-                timestamp: timestamp,
+                entryUrl: url,
+                entryTimestamp: timestamp,
+                exitUrl: exitUrl,
+                exitTimestamp: exitTimestamp,
                 sessionId: sessionId
             })
         })
@@ -75,15 +91,26 @@ function isIgnoredUrl(url) {
 // Initial session ID assignment
 assignSessionId();
 
-// Chrome event listeners
+// Chrome event listeners for URL logging
 chrome.webNavigation.onCompleted.addListener(logUrl);
 chrome.webNavigation.onHistoryStateUpdated.addListener(logUrl);
 
+// Listen for tab updates (URL change) to capture exit/entry URLs
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.url && changeInfo.url !== lastLoggedUrl && !isIgnoredUrl(changeInfo.url)) {
         const timestamp = new Date().toISOString();
-        console.log(`Session ID: [${sessionId}][${timestamp}] URL:`, changeInfo.url);
-        lastLoggedUrl = changeInfo.url;
+
+        // Log exit data before navigating to the new URL
+        if (lastLoggedUrl) {
+            exitTimestamp = timestamp;
+            exitUrl = lastLoggedUrl;
+            console.log(`Session ID: [${sessionId}] Exit URL: [${exitUrl}] Exit Timestamp: [${exitTimestamp}]`);
+        }
+
+        // Log the new entry URL and timestamp
+        console.log(`Session ID: [${sessionId}] Entry URL: [${changeInfo.url}] Entry Timestamp: [${timestamp}]`);
+
+        lastLoggedUrl = changeInfo.url;  // Update the last logged URL
 
         // Inject content script only for the main page
         chrome.scripting.executeScript({
@@ -97,8 +124,10 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                url: changeInfo.url,
-                timestamp: timestamp,
+                entryUrl: changeInfo.url,
+                entryTimestamp: timestamp,
+                exitUrl: exitUrl,
+                exitTimestamp: exitTimestamp,
                 sessionId: sessionId
             })
         })
