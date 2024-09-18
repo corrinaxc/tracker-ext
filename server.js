@@ -8,7 +8,6 @@ const app = express();
 const cors = require('cors');
 app.use(cors());
 
-
 app.use(bodyParser.json());
 
 const db = mysql.createConnection({
@@ -18,33 +17,57 @@ const db = mysql.createConnection({
   database: process.env.DB_NAME
 });
 
+// Convert ISO date to MySQL DATETIME format
 function convertToMySQLDatetime(isoDate) {
   const date = new Date(isoDate);
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
-app.post('/log', (req, res) => {
-  const { url, timestamp } = req.body;
+// Log entry data to the Entry table
+app.post('/logEntry', (req, res) => {
+  const { sessionId, entryUrl, entryDomain, entryTimestamp, isSearchEngine } = req.body;
 
-  if (!url || !timestamp) {
-      console.error('Invalid data received:', req.body);
-      return res.status(400).send('Invalid data');
+  if (!sessionId || !entryUrl || !entryDomain || !entryTimestamp) {
+    console.error('Invalid data received for entry:', req.body);
+    return res.status(400).send('Invalid data');
   }
 
-  const formattedTimestamp = convertToMySQLDatetime(timestamp);
+  const formattedTimestamp = convertToMySQLDatetime(entryTimestamp);
 
-  const query = 'INSERT INTO url_test (url, timestamp) VALUES (?, ?)';
-  db.query(query, [url, formattedTimestamp], (err, result) => {
-      if (err) {
-          console.error('Error inserting into MySQL:', err);
-          return res.status(500).send('Database error');
-      }
-      console.log('Data inserted successfully:', result);
-      res.status(200).send('Logged successfully');
+  const query = 'INSERT INTO Entry (SessionID, EntryURL, EntryTimestamp, Domain, IsSearchEngine) VALUES (?, ?, ?, ?, ?)';
+  db.query(query, [sessionId, entryUrl, formattedTimestamp, entryDomain, isSearchEngine], (err, result) => {
+    if (err) {
+      console.error('Error inserting into Entry table:', err);
+      return res.status(500).send('Database error');
+    }
+    console.log('Entry data inserted successfully:', result);
+    res.status(200).send('Entry logged successfully');
+  });
+});
+
+// Log exit data to the Exit table
+app.post('/logExit', (req, res) => {
+  const { sessionId, pageVisitCounter, exitUrl, exitTimestamp } = req.body;
+
+  if (!sessionId || !pageVisitCounter || !exitUrl || !exitTimestamp) {
+    console.error('Invalid data received for exit:', req.body);
+    return res.status(400).send('Invalid data');
+  }
+
+  const formattedTimestamp = convertToMySQLDatetime(exitTimestamp);
+
+  const query = 'INSERT INTO Exit (SessionID, ExitTimestamp) VALUES (?, ?)';
+  db.query(query, [sessionId, formattedTimestamp], (err, result) => {
+    if (err) {
+      console.error('Error inserting into Exit table:', err);
+      return res.status(500).send('Database error');
+    }
+    console.log('Exit data inserted successfully:', result);
+    res.status(200).send('Exit logged successfully');
   });
 });
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
-console.log(`Server running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
