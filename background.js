@@ -1,5 +1,5 @@
 let lastLoggedUrl = '';
-let sessionId = '';
+let sessionId = null;
 let inactivityTimeout;
 let pageVisitCounter = 1;
 
