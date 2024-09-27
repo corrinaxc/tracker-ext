@@ -1,14 +1,16 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
+import express from 'express';
+import mysql from 'mysql2';
+import bodyParser from 'body-parser';
+import cors from 'cors';
 
-const express = require('express');
-const mysql = require('mysql2');
-const bodyParser = require('body-parser');
+// Load environment variables from .env file
+dotenv.config();
+
+const MAX_URL_LENGTH = 2048;
 
 const app = express();
-const cors = require('cors');
 app.use(cors());
-
-
 app.use(bodyParser.json());
 
 const db = mysql.createConnection({
@@ -24,23 +26,30 @@ function convertToMySQLDatetime(isoDate) {
 }
 
 app.post('/log', (req, res) => {
-  const { url, timestamp } = req.body;
+  const { sessionId, pageCount, url, domain, isSearchEngine, timestamp } = req.body;
 
-  if (!url || !timestamp) {
-      console.error('Invalid data received:', req.body);
-      return res.status(400).send('Invalid data');
+  // Validate input data: check for undefined or null values
+  if (sessionId === undefined || pageCount === undefined || url === undefined || domain === undefined || isSearchEngine === undefined || timestamp === undefined) {
+    console.error('Invalid data received:', req.body);
+    return res.status(400).send('Invalid data');
+  }
+
+  if (url.length > MAX_URL_LENGTH) {
+    console.error('URL exceeds maximum length:', url);
+    return res.status(400).send('URL is too long');
   }
 
   const formattedTimestamp = convertToMySQLDatetime(timestamp);
 
-  const query = 'INSERT INTO url_test (url, timestamp) VALUES (?, ?)';
-  db.query(query, [url, formattedTimestamp], (err, result) => {
-      if (err) {
-          console.error('Error inserting into MySQL:', err);
-          return res.status(500).send('Database error');
-      }
-      console.log('Data inserted successfully:', result);
-      res.status(200).send('Logged successfully');
+  // Correct query and column names
+  const query = 'INSERT INTO UserSessions (SessionId, PageCount, URL, Domain, isSearchEngine, Timestamp) VALUES (?, ?, ?, ?, ?, ?)';
+  db.query(query, [sessionId, pageCount, url, domain, isSearchEngine, formattedTimestamp], (err, result) => {
+    if (err) {
+      console.error('Error inserting into MySQL:', err);
+      return res.status(500).send('Database error');
+    }
+    console.log('Data inserted successfully:', result);
+    res.status(200).send('Logged successfully');
   });
 });
 
